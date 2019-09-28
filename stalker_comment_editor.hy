@@ -7,11 +7,12 @@
         struct
         crcmod
         crcmod.predefined
+        zlib
+        [mutagen._util [cdata]]
         re
         binascii
         click
         yaml)
-
 
 (setv Identification
       (namedtuple "Identification"
@@ -37,7 +38,6 @@
                    "base_volume"
                    "sound_type"
                    "max_ai_distance"]))
-
 
 (setv *default-comment* (Comment 3 2 100 1 0 50))
 (setv *ident-header-flag* (struct.pack "B6s" 1 b"vorbis"))
@@ -163,18 +163,19 @@
   (try (next (gfor (, i page) (enumerate pages) :if (>= (.find page value) 0) i))
        (except [StopIteration])))
 
+
 (defn update-checksum [byte-seq]
   (setv pages (get-pages byte-seq)
         comment-page (find-in-pages *comment-header-flag*  pages)
         data (get pages comment-page)
         crc-fun (crcmod.mkCrcFun 0x104c11db7 :initCrc 0 :xorOut 0 :rev False)
-        crc-zero (struct.pack "I" 0)
+        crc-zero (struct.pack "<I" 0)
         crc-old (cut data 22 (+ 22 4))
         data (replace-range 22 (+ 22 4) crc-zero data)
         crc-new (struct.pack "I" (crc-fun data))
         data (replace-range 22 (+ 22 4) crc-new data)
         (get pages comment-page) data)
-  (print (struct.unpack "I" crc-old ) (struct.unpack "I" crc-new))
+  (print crc-new crc-old)
   (.join b"" pages))
 
 
@@ -202,7 +203,12 @@
           (print (+ "\n" (* "=" 25) "\n"))
           ;; (with [out (open "uncommented-inserted.ogg" "wb")]
           ;;   (out.write data))
-          (except [ValueError]))))))
+          (except [e ValueError]
+            (print e)))))))
 
 (defmain [&rest args]
   (cli))
+
+
+
+
