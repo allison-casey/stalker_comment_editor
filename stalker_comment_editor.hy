@@ -37,11 +37,11 @@
                    "sound_type"
                    "max_ai_distance"]))
 
-(setv *default-comment* (Comment 3 2 100 1 0 50))
-(setv *ident-header-flag* (struct.pack "B6s" 1 b"vorbis"))
-(setv *comment-header-flag* (struct.pack "B6s" 3 b"vorbis"))
-(setv *comment-format* "I3fIf")
-(setv *sound-types* {134217856 "World ambient"
+(setv *default-comment* (Comment 3 2 100 1 0 50)
+      *ident-header-flag* (struct.pack "B6s" 1 b"vorbis")
+      *comment-header-flag* (struct.pack "B6s" 3 b"vorbis")
+      *comment-format* "I3fIf"
+      *sound-types* {134217856 "World ambient"
                      134217984 "Object exploding"
                      134218240 "Object colliding"
                      134218752 "Object breaking"
@@ -60,11 +60,16 @@
                      2147745792 "weapon recharging"
                      2148007936 "Weapon bullet hit"
                      2148532224 "Weapon empty clicking"
-                     2149580800 "Weapon shooting"})
-
+                     2149580800 "Weapon shooting"}
+      *sound-types-lookup* (dfor (, k v) (.items *sound-types*) [v k]))
 
 (defn int->sound-type [sound-int]
   (.get *sound-types* sound-int "default"))
+
+(defn sound-type->int [sound-type]
+  (unless (in sound-type *sound-types-lookup*)
+    (raise (ValueError "sound type not in valid sound-types")))
+  (get *sound-types-lookup* sound-type))
 
 (defn render-identification [identification]
   (.join "\n" ["Identification Header"
@@ -73,8 +78,8 @@
                      (+ k ": " (str v)))]))
 
 (defn render-comment [comment]
-  (setv comment-dict (._asdict comment))
-  (setv (get comment-dict "sound_type") (int->sound-type (get comment-dict "sound_type")))
+  (setv comment-dict (._asdict comment)
+        (get comment-dict "sound_type") (int->sound-type (get comment-dict "sound_type")))
   (.join "\n" ["Comment Block"
                "---------------------"
                #* (lfor (, k v) (.items comment-dict)
@@ -105,22 +110,25 @@
 
 
 (defn parse-identity [byte-seq]
-  (setv index (.find byte-seq *ident-header-flag*))
-  (setv data (cut byte-seq index))
-  (setv data (cut data (len *ident-header-flag*)))
-  (, byte-seq
-     (Identification #* (struct.unpack "<IBI3iB" (cut data 0 22)))))
+  (setv index (.find byte-seq *ident-header-flag*)
+        data (cut byte-seq index)
+        data (cut data (len *ident-header-flag*))
+        ident (Identification #* (struct.unpack "<IBI3iB" (cut data 0 22))))
+  (, byte-seq ident))
 
 
 (defn parse-comment [new-comments byte-seq]
-  (setv index (.find byte-seq *comment-header-flag*))
-  (setv data (cut byte-seq index))
-  (setv data (cut data (len *comment-header-flag*)))
-  (setv (, header-length ) (struct.unpack "I" (cut data 0 4)))
-  (setv header (CommentHeader #*
-                              (struct.unpack f"<I{header-length}sI"
-                                             (cut data 0 (+ 8 header-length)))))
-  (setv data (cut data (+ 8 header-length)))
+  (if (in "sound_type" new-comments)
+      (setv (get new-comments "sound_type") (sound-type->int (get new-comments "sound_type"))))
+
+  (setv index (.find byte-seq *comment-header-flag*)
+        data (cut byte-seq index)
+        data (cut data (len *comment-header-flag*))
+        (, header-length ) (struct.unpack "I" (cut data 0 4))
+        header (CommentHeader #*
+                               (struct.unpack f"<I{header-length}sI"
+                                              (cut data 0 (+ 8 header-length))))
+        data (cut data (+ 8 header-length)))
 
   (as-> (cut data 0 4) com-length
         (struct.unpack "I" com-length)
@@ -216,7 +224,7 @@
     (try (validate :instance manifest :schema schema)
          (except [e ValidationError]
            (click.echo e)
-           return 1))
+           ( return 1 )))
     (for [entry manifest]
       (setv in-path (as-> "in-path" p (get entry p) (cwd.joinpath p))
             out-path (as-> "out-path" p (get entry p) (cwd.joinpath p))
