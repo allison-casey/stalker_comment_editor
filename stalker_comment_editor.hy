@@ -64,6 +64,9 @@
                      2148532224 "Weapon empty clicking"
                      2149580800 "Weapon shooting"})
 
+;; (print (struct.pack *comment-format* #* *default-comment*))
+;; (print (struct.pack *comment-format* #* (update-namedtuple {"max_ai_distance" 999} *default-comment* )))
+
 (defn int->sound-type [sound-int]
   (.get *sound-types* sound-int "default"))
 
@@ -113,7 +116,7 @@
      (Identification #* (struct.unpack "<IBI3iB" (cut data 0 22)))))
 
 
-(defn parse-comment [byte-seq]
+(defn parse-comment [new-comments byte-seq]
   (setv index (.find byte-seq *comment-header-flag*))
   (setv data (cut byte-seq index))
   (setv data (cut data (len *comment-header-flag*)))
@@ -122,14 +125,34 @@
                               (struct.unpack f"<I{header-length}sI"
                                              (cut data 0 (+ 8 header-length)))))
   (setv data (cut data (+ 8 header-length)))
-  (setv (, comment-length) (struct.unpack "I" (cut data 0 4)))
 
-  (unless (= comment-length 24)
-    (raise (ValueError "Ogg contains no stalker vorbis comment")))
-  (setv data (cut data 4))
-  (, byte-seq
-     header
-     (Comment #* (struct.unpack "I3fIf" (cut data 0 24)))))
+  (as-> (cut data 0 4) com-length
+        (struct.unpack "I" com-length)
+        (get com-length 0)
+        (unless (= com-length 24)
+          (raise (ValueError "Ogg contains no stalker vorbis comment"))))
+
+  (setv new-comment-bytes (as-> new-comments com
+                                (update-namedtuple com *default-comment*)
+                                (struct.pack *comment-format* #* com))
+        data (as-> data d
+                   (cut d 4)
+                   (replace-range 0 24 new-comment-bytes d))
+        comment (Comment #* (struct.unpack "I3fIf" (cut data 0 24)))
+
+        data (+ (cut byte-seq 0 (+ index
+                                   (len *comment-header-flag*)
+                                   header-length
+                                   4
+                                   4
+                                   4))
+                      data))
+  ;; (print (cut data 100))
+  ;; (, byte-seq
+  ;;    header
+  ;;    (Comment #* (struct.unpack "I3fIf" (cut data 0 24))))
+  (, data header comment))
+
 
 (defn ensure-comment [byte-seq]
   (setv index (.find byte-seq *comment-header-flag*))
@@ -151,9 +174,16 @@
                                   (+ index-of-split 4)
                                   (struct.pack "I" (+ header.num_comments 1))
                                   byte-seq))
+
+    ;; (print (cut byte-seq (+ index-of-split 4) (+ index-of-split 60)))
+    (setv start-length (len byte-seq))
     (setv byte-seq (insert-list (+ index-of-split 4)
                                 byte-seq
-                                (+ (struct.pack "I" 24) default-comment-bytes ))))
+                                (+ (struct.pack "I" 24) default-comment-bytes )))
+    ;; (print (cut byte-seq (+ index-of-split 4) (+ index-of-split 60)))
+    ;; (print (len byte-seq))
+    ;; (print (- (len byte-seq) start-length))
+    )
   byte-seq)
 
 (defn get-pages [byte-seq]
@@ -175,16 +205,16 @@
         crc-new (struct.pack "I" (crc-fun data))
         data (replace-range 22 (+ 22 4) crc-new data)
         (get pages comment-page) data)
-  (print crc-new crc-old)
+  ;; (print crc-new crc-old)
   (.join b"" pages))
 
 
-(defn parse-ogg [file]
+(defn parse-ogg [new-comments file]
   (with [f (open file "rb")]
     (setv data (.read f)))
   (setv data (ensure-comment data))
   (setv (, data ident) (parse-identity data))
-  (setv (, data comment-header comment) (parse-comment data))
+  (setv (, data comment-header comment) (parse-comment new-comments data))
   (setv data (update-checksum data))
   (, data ident comment))
 
@@ -196,13 +226,14 @@
     (setv cwd (Path.cwd))
     (for [entry manifest]
       (setv files (cwd.glob (get entry "glob")))
+      (setv new-comments (get entry "comment"))
       (for [file files]
         (try
-          (setv (, data ident header) (parse-ogg file))
+          (setv (, data ident header) (parse-ogg new-comments file))
           (print (render-ogg (. file stem) ident header))
           (print (+ "\n" (* "=" 25) "\n"))
-          ;; (with [out (open "uncommented-inserted.ogg" "wb")]
-          ;;   (out.write data))
+          (with [out (open "uncommented-inserted.ogg" "wb")]
+            (out.write data))
           (except [e ValueError]
             (print e)))))))
 
