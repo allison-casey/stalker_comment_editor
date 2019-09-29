@@ -4,15 +4,20 @@
         [pprint [pprint]]
         [collections [namedtuple]]
         [pathlib [Path]]
+        [jsonschema [validate]]
+        [jsonschema.exceptions [ValidationError]]
         struct
         crcmod
         crcmod.predefined
         zlib
-        [mutagen._util [cdata]]
         re
         binascii
         click
         yaml)
+
+
+(with [f (open "schema.yaml" "r")]
+  (setv schema (yaml.load f :Loader yaml.FullLoader)))
 
 (setv Identification
       (namedtuple "Identification"
@@ -64,8 +69,6 @@
                      2148532224 "Weapon empty clicking"
                      2149580800 "Weapon shooting"})
 
-;; (print (struct.pack *comment-format* #* *default-comment*))
-;; (print (struct.pack *comment-format* #* (update-namedtuple {"max_ai_distance" 999} *default-comment* )))
 
 (defn int->sound-type [sound-int]
   (.get *sound-types* sound-int "default"))
@@ -147,10 +150,6 @@
                                    4
                                    4))
                       data))
-  ;; (print (cut data 100))
-  ;; (, byte-seq
-  ;;    header
-  ;;    (Comment #* (struct.unpack "I3fIf" (cut data 0 24))))
   (, data header comment))
 
 
@@ -175,14 +174,10 @@
                                   (struct.pack "I" (+ header.num_comments 1))
                                   byte-seq))
 
-    ;; (print (cut byte-seq (+ index-of-split 4) (+ index-of-split 60)))
     (setv start-length (len byte-seq))
     (setv byte-seq (insert-list (+ index-of-split 4)
                                 byte-seq
                                 (+ (struct.pack "I" 24) default-comment-bytes )))
-    ;; (print (cut byte-seq (+ index-of-split 4) (+ index-of-split 60)))
-    ;; (print (len byte-seq))
-    ;; (print (- (len byte-seq) start-length))
     )
   byte-seq)
 
@@ -221,21 +216,43 @@
 (with-decorator
   (click.command)
   (click.argument "manifest" :type (click.File "r"))
-  (defn cli [manifest]
-    (setv manifest (yaml.load manifest :Loader yaml.FullLoader))
-    (setv cwd (Path.cwd))
+  (click.option "-p" "--print" "_print" :is_flag True)
+  (defn cli [manifest _print]
+    (setv manifest (yaml.load manifest :Loader yaml.FullLoader)
+          cwd (Path.cwd))
+    (try (validate :instance manifest :schema schema)
+         (except [e ValidationError]
+           (click.echo e)
+           return 1))
     (for [entry manifest]
-      (setv files (cwd.glob (get entry "glob")))
-      (setv new-comments (get entry "comment"))
+      (setv in-path (as-> "in-path" p (get entry p) (cwd.joinpath p))
+            out-path (as-> "out-path" p (get entry p) (cwd.joinpath p))
+            new-comments (if (in "comment" entry)
+                             (get entry "comment")
+                             {}))
+
+      (if (= in-path out-path)
+          (click.confirm (.join " " ["in-path and out-path are the same"
+                                     "and will result in overwritting source files."
+                                     "Would you like to continue"])
+                         :abort True
+                         :default False))
+
+      (in-path.mkdir :parents True :exist_ok True)
+      (out-path.mkdir :parents True :exist_ok True)
+      (setv files (in-path.glob (get entry "glob")))
+
       (for [file files]
+        (unless (= file.suffix ".ogg") continue)
         (try
           (setv (, data ident header) (parse-ogg new-comments file))
-          (print (render-ogg (. file stem) ident header))
-          (print (+ "\n" (* "=" 25) "\n"))
-          (with [out (open "uncommented-inserted.ogg" "wb")]
+          (with [out (open (out-path.joinpath file.name) "wb")]
             (out.write data))
+          (if _print
+              (do (click.echo (render-ogg (. file stem) ident header))
+                  (click.echo (+ "\n" (* "=" 25) "\n"))))
           (except [e ValueError]
-            (print e)))))))
+            (click.echo e)))))))
 
 (defmain [&rest args]
   (cli))

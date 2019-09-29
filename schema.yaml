@@ -1,0 +1,51 @@
+type: array
+items:
+  type: object
+  required:
+    - glob
+    - in-path
+    - out-path
+  properties:
+    glob:
+      type: string
+    in-path:
+      type: string
+    out-path:
+      type: string
+    comment:
+      type: object
+      additionalProperties: false
+      properties:
+        quality:
+          type: number
+        min_distance:
+          type: number
+        maximum_distance:
+          type: number
+        base_volume:
+          type: number
+        sound_type:
+          type: string
+          enum:
+            - "World ambient"
+            - "Object exploding"
+            - "Object colliding"
+            - "Object breaking"
+            - "Anomaly idle"
+            - "NPC eating"
+            - "NPC attacking"
+            - "NPC talking"
+            - "NPC step"
+            - "NPC injuring"
+            - "NPC dying"
+            - "Item using"
+            - "Item taking"
+            - "Item hiding"
+            - "Item dropping"
+            - "Item picking up"
+            - "weapon recharging"
+            - "Weapon bullet hit"
+            - "Weapon empty clicking"
+            - "Weapon shooting"
+        max_ai_distance:
+          type: number

@@ -3,3 +3,4 @@ pyyaml
 hy
 crcmod
 mutagen
+jsonschema
