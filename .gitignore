@@ -1,4 +1,6 @@
 # Byte-compiled / optimized / DLL files
+.envrc
+.direnv/
 .#*
 __pycache__/
 *.py[cod]
