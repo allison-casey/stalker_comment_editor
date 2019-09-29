@@ -1,17 +1,10 @@
-(import [itertools [islice
-                    takewhile
-                    dropwhile]]
-        [pprint [pprint]]
-        [collections [namedtuple]]
+(import [collections [namedtuple]]
         [pathlib [Path]]
         [jsonschema [validate]]
         [jsonschema.exceptions [ValidationError]]
         struct
         crcmod
-        crcmod.predefined
-        zlib
         re
-        binascii
         click
         yaml)
 
