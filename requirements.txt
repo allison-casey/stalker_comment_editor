@@ -1,5 +1,5 @@
+hy>=0.17.0
 click
-pyyaml
-hy
 crcmod
 jsonschema
+pyyaml
