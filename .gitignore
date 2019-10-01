@@ -1,3 +1,7 @@
+out/
+**/*.ogg
+**/.#*
+my-manifest.yaml
 *.py[cod]
 
 # C extensions
