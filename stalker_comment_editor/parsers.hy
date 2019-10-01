@@ -1,12 +1,6 @@
 (import [.records [Identification CommentHeader Comment]]
-        [.utils [
-                 ;; int->sound-type
-                 ;; sound-type->int
-                 ;; render-identification
-                 ;; render-comment
-                 ;; render-ogg
+        [.utils [sound-type->int
                  update-namedtuple
-                 ;; split-seq
                  insert-list
                  replace-range
                  get-pages
