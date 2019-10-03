@@ -26,6 +26,7 @@ setup(
     url="https://github.com/sjcasey21/stalker_comment_editor",
     packages=find_packages(exclude=["tests"]),
     package_data={"stalker_comment_editor": ["*.hy"]},
+    include_package_data=True,
     install_requires=["hy >= 0.17.0", "click", "pyyaml", "crcmod", "jsonschema"],
     entry_points={"console_scripts":
                   ["stalker_comment_editor=stalker_comment_editor:cli"]},
