@@ -43,9 +43,12 @@
 
       (for [file files]
         (unless (= file.suffix ".ogg") continue)
+        (print (file.relative_to in-path))
         (try
-          (setv (, data ident header) (parse-ogg new-comments file))
-          (with [out (open (out-path.joinpath file.name) "wb")]
+          (setv (, data ident header) (parse-ogg new-comments file)
+                file-path (out-path.joinpath (file.relative_to in-path)))
+          (.mkdir (. file-path parent) :parents True :exist_ok True)
+          (with [out (open file-path "wb")]
             (out.write data))
           (if _print
               (do (click.echo (render-ogg (. file stem) ident header))
