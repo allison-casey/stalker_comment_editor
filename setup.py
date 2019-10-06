@@ -18,7 +18,7 @@ readme = open("README.rst").read()
 
 setup(
     name="stalker_comment_editor",
-    version="0.3.1",
+    version="0.3.2",
     description="Cli tool for bulk editing of stalker ogg vorbis comments.",
     long_description=readme,
     author="Steve Casey",
