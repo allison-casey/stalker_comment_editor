@@ -34,6 +34,7 @@
                                               (cut data 0 (+ 8 header-length))))
         data (cut data (+ 8 header-length)))
 
+
   (as-> (cut data 0 4) com-length
         (struct.unpack "I" com-length)
         (get com-length 0)
@@ -91,14 +92,24 @@
 (defn update-checksum [byte-seq]
   (setv pages (get-pages byte-seq)
         comment-page (find-in-pages *comment-header-flag*  pages)
-        data (get pages comment-page)
-        crc-fun (crcmod.mkCrcFun 0x104c11db7 :initCrc 0 :xorOut 0 :rev False)
-        crc-zero (struct.pack "<I" 0)
-        crc-old (cut data 22 (+ 22 4))
-        data (replace-range 22 (+ 22 4) crc-zero data)
-        crc-new (struct.pack "I" (crc-fun data))
-        data (replace-range 22 (+ 22 4) crc-new data)
-        (get pages comment-page) data)
+        data (get pages comment-page))
+  (setv 
+    crc-fun (crcmod.mkCrcFun 0x104c11db7 :initCrc 0 :xorOut 0 :rev False)
+    crc-zero (struct.pack "<I" 0)
+    crc-old (cut data 22 (+ 22 4))
+    data (replace-range 22 (+ 22 4) crc-zero data)
+    data (replace-range 27 28 (struct.pack "B" 0xa2) data))
+
+
+  (setv 
+    crc-new (struct.pack "I" (crc-fun data))
+    data (replace-range 22 (+ 22 4) crc-new data)
+    (get pages comment-page) data)
+  ;; (print (.join " " (gfor x crc-old (hex x))))
+  ;; (print (.join " " (gfor x crc-new (hex x))))
+  ;; (print crc-new)
+  ;; (print (cut data 20 40))
+
   (.join b"" pages))
 
 
@@ -110,3 +121,5 @@
   (setv (, data comment-header comment) (parse-comment new-comments data))
   (setv data (update-checksum data))
   (, data ident comment))
+
+
