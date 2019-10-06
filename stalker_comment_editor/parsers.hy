@@ -4,6 +4,7 @@
                  insert-list
                  replace-range
                  get-pages
+                 get-sections
                  find-in-pages]]
         [.consts [*default-comment*
                   *ident-header-flag*
@@ -92,14 +93,14 @@
 (defn update-checksum [byte-seq]
   (setv pages (get-pages byte-seq)
         comment-page (find-in-pages *comment-header-flag*  pages)
-        data (get pages comment-page))
+        data (get pages comment-page)
+        packet-length (len (get (get-sections data) 0)))
   (setv 
     crc-fun (crcmod.mkCrcFun 0x104c11db7 :initCrc 0 :xorOut 0 :rev False)
     crc-zero (struct.pack "<I" 0)
     crc-old (cut data 22 (+ 22 4))
     data (replace-range 22 (+ 22 4) crc-zero data)
-    packet-length (get data 27)
-    data (replace-range 27 28 (struct.pack "B" (+ packet-length 28)) data))
+    data (replace-range 27 28 (struct.pack "B" packet-length) data))
 
   (setv 
     crc-new (struct.pack "I" (crc-fun data))

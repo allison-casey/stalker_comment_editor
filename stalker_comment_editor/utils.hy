@@ -18,7 +18,8 @@
 
 (defn render-comment [comment]
   (setv comment-dict (._asdict comment)
-        (get comment-dict "sound_type") (int->sound-type (get comment-dict "sound_type")))
+        (get comment-dict "sound_type")
+        (int->sound-type (get comment-dict "sound_type")))
   (.join "\n" ["Comment Block"
                "---------------------"
                #* (lfor (, k v) (.items comment-dict)
@@ -49,6 +50,9 @@
 
 (defn get-pages [byte-seq]
   (re.findall b"(OggS.*?(?=OggS|$))" byte-seq re.DOTALL))
+
+(defn get-sections [byte-seq]
+  (re.findall b"(vorbis.*?(?=vorbis|$))" byte-seq re.DOTALL))
 
 (defn find-in-pages [value pages]
   (try (next (gfor (, i page) (enumerate pages) :if (>= (.find page value) 0) i))
