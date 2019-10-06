@@ -98,8 +98,8 @@
     crc-zero (struct.pack "<I" 0)
     crc-old (cut data 22 (+ 22 4))
     data (replace-range 22 (+ 22 4) crc-zero data)
-    data (replace-range 27 28 (struct.pack "B" 0xa2) data))
-
+    packet-length (get data 27)
+    data (replace-range 27 28 (struct.pack "B" (+ packet-length 28)) data))
 
   (setv 
     crc-new (struct.pack "I" (crc-fun data))
