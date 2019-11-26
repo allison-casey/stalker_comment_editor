@@ -1,18 +1,11 @@
 (import [stalker_comment_editor.parsers.identification :as ident]
         [stalker_comment_editor.parsers.comment :as com]
         [hy.contrib.hy-repr [hy-repr hy-repr-register]]
-        [.utils [sound-type->int
-                 update-namedtuple
-                 insert-list
-                 merge
-                 replace-range
+        [.utils [replace-range
                  get-pages
                  get-sections
-                 spy
                  find-in-pages]]
-        [.consts [; *default-comment*
-                  *ident-header-flag*
-                  *comment-header-flag*]]
+        [.consts [*comment-header-flag*]]
         struct
         crcmod)
 
