@@ -1,7 +1,7 @@
-(import [.records [Comment]]
+(import ; [stalker_comment_editor.records.comment [->Comment]]
         struct)
 
-(setv *default-comment* (Comment 3 2 100 1 0 50)
+(setv ; *default-comment* (->Comment -1 3 2 100 1 0 50)
       *ident-header-flag* (struct.pack "B6s" 1 b"vorbis")
       *comment-header-flag* (struct.pack "B6s" 3 b"vorbis")
       *comment-format* "I3fIf"

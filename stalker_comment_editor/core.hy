@@ -1,5 +1,5 @@
 ;;;; stalker_comment_editor -- Cli tool for bulk editing of stalker ogg vorbis comments.
-(import [.utils [render-ogg]]
+(import [.utils [render-ogg py->hy]]
         [.parsers [parse-ogg]]
         [pathlib [Path]]
         [jsonschema [validate]]
@@ -22,13 +22,13 @@
     (try (validate :instance manifest :schema schema)
          (except [e ValidationError]
            (click.echo e)
-           ( return 1 )))
+           (return 1)))
+
+    (setv manifest (py->hy manifest))
     (for [entry manifest]
-      (setv in-path (as-> "in-path" p (get entry p) (cwd.joinpath p))
-            out-path (as-> "out-path" p (get entry p) (cwd.joinpath p))
-            new-comments (if (in "comment" entry)
-                             (get entry "comment")
-                             {}))
+      (setv in-path (-> entry :in-path cwd.joinpath)
+            out-path (-> entry :out-path cwd.joinpath)
+            new-comments (if (in :comment entry) (:comment entry) {}))
 
       (if (= in-path out-path)
           (click.confirm (.join " " ["in-path and out-path are the same"
@@ -39,7 +39,7 @@
 
       (in-path.mkdir :parents True :exist_ok True)
       (out-path.mkdir :parents True :exist_ok True)
-      (setv files (in-path.glob (get entry "glob")))
+      (setv files (in-path.glob (:glob entry)))
 
       (for [file files]
         (unless (= file.suffix ".ogg") continue)
