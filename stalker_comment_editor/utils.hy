@@ -66,6 +66,8 @@
   [byte-seq]
   (re.findall b"(vorbis.*?(?=vorbis|$))" byte-seq re.DOTALL))
 
+(defn printhy [&rest args] (print #* (map hy-repr args)))
+
 (defn find-in-pages
   [value pages]
   (try (next (gfor (, i page) (enumerate pages) :if (>= (.find page value) 0) i))

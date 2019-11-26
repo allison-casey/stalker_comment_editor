@@ -1,6 +1,6 @@
 ;;;; stalker_comment_editor -- Cli tool for bulk editing of stalker ogg vorbis comments.
 (import [.utils [render-ogg py->hy]]
-        [.parsers [parse-ogg]]
+        [.parse [parse-ogg]]
         [pathlib [Path]]
         [jsonschema [validate]]
         [jsonschema.exceptions [ValidationError]]
